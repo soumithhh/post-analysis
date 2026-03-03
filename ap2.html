@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkedIn Post Analysis</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; min-height: 100vh; padding: 24px 16px; }
+    .container { max-width: 680px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; font-weight: 800; color: #111827; }
+    .badge-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .badge { font-size: 0.7rem; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-purple { background: #ede9fe; color: #6d28d9; }
+    .target { font-size: 0.75rem; color: #6b7280; margin-top: 8px; }
+    .tabs { display: flex; gap: 0; border-bottom: 2px solid #e5e7eb; margin: 20px 0 16px; }
+    .tab-btn { padding: 10px 20px; font-size: 0.85rem; font-weight: 600; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; color: #6b7280; transition: color 0.15s, border-color 0.15s; }
+    .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .tab-btn:hover:not(.active) { color: #374151; }
+    .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .score-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; text-align: center; background: #fff; }
+    .score-num { font-size: 2rem; font-weight: 800; }
+    .score-label { font-size: 0.72rem; color: #6b7280; margin-top: 4px; }
+    .accordion { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+    .accordion-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: #f9fafb; border: none; cursor: pointer; text-align: left; transition: background 0.15s; }
+    .accordion-header:hover { background: #f3f4f6; }
+    .accordion-title { font-weight: 600; color: #1f2937; font-size: 0.85rem; }
+    .accordion-arrow { color: #9ca3af; font-size: 0.8rem; }
+    .accordion-body { padding: 16px 18px; background: #fff; font-size: 0.85rem; color: #374151; line-height: 1.6; }
+    .green-label { color: #15803d; font-weight: 600; margin-bottom: 6px; }
+    .amber-label { color: #b45309; font-weight: 600; margin-bottom: 6px; margin-top: 12px; }
+    ul.plain { list-style: none; padding: 0; }
+    ul.plain li { margin-bottom: 6px; }
+    .segment-card { border: 1px solid #f3f4f6; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .segment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .segment-name { font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #374151; }
+    .seg-badge { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .seg-positive { background: #dcfce7; color: #166534; }
+    .seg-neutral { background: #fef9c3; color: #854d0e; }
+    .seg-negative { background: #fee2e2; color: #991b1b; }
+    .segment-quote { color: #6b7280; font-style: italic; font-size: 0.78rem; margin-bottom: 4px; }
+    .segment-explain { font-size: 0.8rem; color: #374151; }
+    .suggestion-item { border-left: 4px solid #93c5fd; padding-left: 12px; margin-bottom: 10px; color: #374151; }
+    .highlight-box { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px; padding: 16px; margin-top: 8px; }
+    .highlight-box-title { font-weight: 700; color: #92400e; margin-bottom: 4px; }
+    .highlight-box-body { color: #78350f; font-size: 0.85rem; }
+    .rewrite-box { background: #111827; color: #f3f4f6; border-radius: 12px; padding: 20px; margin-bottom: 16px; white-space: pre-wrap; font-size: 0.85rem; line-height: 1.7; font-family: 'Courier New', monospace; }
+    .change-item { border-left: 4px solid #a5b4fc; padding-left: 12px; margin-bottom: 10px; color: #374151; font-size: 0.84rem; }
+    .practice-item { margin-bottom: 6px; font-size: 0.84rem; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const analysis = {
+  platform_detected: "LinkedIn",
+  author_type: "Marketing/content consultant or solopreneur coach",
+  target_audience: "Solopreneurs and service-based sellers struggling to convert content into clients",
+  options: {
+    positive: [
+      "Strong reframe hook — 'You're not bad at social media, you're using the wrong system' immediately neutralizes defensiveness and earns curiosity",
+      "Specific, credible client story: 47 posts, 6 weeks, zero DMs. Numbers anchor the advice in reality",
+      "Anaphora ('Stop…') creates rhythm and makes the list feel like a system, not a rant",
+      "The 'likes are applause from people who won't buy' line is punchy and genuinely memorable",
+      "No hard CTA — the authority positioning is subtle and therefore less off-putting"
+    ],
+    storytelling_only: [
+      "'Thousands of impressions' is deliberately vague — it could mean 2,000 or 200,000, and the ambiguity inflates perceived scale",
+      "The pivot from problem to solution is mechanical — there's no real narrative tension or surprise",
+      "'What I wish solopreneurs knew earlier' is a relatability performance, not a genuine confession",
+      "The 'one insight → 3 formats' tip is presented as a revelation, but it's been standard content advice for years"
+    ]
+  },
+  predictability: {
+    is_predictable: true,
+    explanation: "The 'You're not bad at X, you're just doing Y wrong' opener is a fixture of LinkedIn advice posts. The 'Stop X / Do Y' list format is one of the most replicated templates on the platform. The ending engagement question is textbook engagement bait. A regular LinkedIn user will have seen this exact arc dozens of times."
+  },
+  alternative_suggestions: [
+    "Show the after, not just the problem: What happened after they made the changes? If the client got 5 DMs in the next week, say that. The story stops mid-pivot and robs the post of its payoff.",
+    "Replace 'thousands of impressions' with a real number — vagueness undercuts the specificity that makes '47 posts / zero DMs' work so well.",
+    "Collapse 2–3 of the 'Stop' points into one and go deeper — breadth dilutes authority. Fewer, sharper insights would hit harder than five competent ones.",
+    "Swap the generic closing question for something more specific — e.g., 'What's one metric you can pull up right now that tells you if your content is converting?' This converts commenters into self-qualifiers.",
+    "Consider leading with the most counterintuitive insight — 'Stop writing for reach' — rather than burying it in the middle. It's the freshest idea in the post."
+  ],
+  story_analysis: [
+    { segment: "Opening Hook", content: "You're not bad at social media. You're just using a system built for creators not for people who sell things.", value_assessment: "positive", explanation: "Smart reframe — removes shame, redefines the problem, and makes the reader feel understood rather than criticized. Solid hook." },
+    { segment: "Client Story", content: "47 posts in 6 weeks. Thousands of impressions. Zero DMs.", value_assessment: "positive", explanation: "The specific numbers (47, 6 weeks, zero) are excellent. 'Thousands of impressions' weakens it slightly — the vagueness is probably intentional but noticeable." },
+    { segment: "Problem Diagnosis", content: "Every post spoke to everyone which means it converted no one.", value_assessment: "positive", explanation: "Clean, quotable diagnosis. This is the most shareable line in the post." },
+    { segment: "'Stop' List — Body", content: "Stop posting without a POV. Stop being on every platform. Stop writing for reach. Stop letting ideas die. Stop measuring likes.", value_assessment: "neutral", explanation: "Individually, each point is solid. Collectively, five 'Stop' items is too many — the list loses momentum by item four. The format is also very familiar to the LinkedIn audience." },
+    { segment: "Conclusion", content: "You don't need more content. You need content that works harder.", value_assessment: "positive", explanation: "A clean, punchy landing. Works as a summary and a callback to the opening." },
+    { segment: "Closing CTA / Engagement Question", content: "What's one metric you've stopped tracking and one you've started paying attention to instead?", value_assessment: "neutral", explanation: "Designed to drive comments, but it's a two-part question that's mildly complicated to answer. A simpler, more direct question would get higher response rates." }
+  ],
+  tone_and_impact: { tone: "authoritative, subtly self-promotional", effective: true, reader_impact: "Ideal reader (solopreneur frustrated by content results) will feel seen and take notes. Skeptical reader will recognize the formula quickly — the 'Stop X' list, the vague client story, the engagement bait — and disengage." },
+  extended_analysis: {
+    rhetorical_devices: [
+      "Anaphora: 'Stop posting… Stop being… Stop writing… Stop letting… Stop measuring' — creates rhythm and authority",
+      "False dichotomy: Reach vs. conversion framed as mutually exclusive when they're not always",
+      "Appeal to authority via client story (implied consulting expertise)",
+      "Relatability performance: 'what I wish solopreneurs knew earlier'",
+      "Aphorism: 'Likes are applause from people who won't buy' — designed to be screenshot-worthy"
+    ],
+    subtext: "The post's real message is: 'I have figured out what most content gurus haven't — I understand the seller's problem, not just the creator's. If you're a solopreneur spinning your wheels, I'm the consultant you need.' There's no direct pitch, which is strategically smart — the authority is implied, not stated.",
+    authenticity_score: 6,
+    authenticity_justification: "The client story has real specificity (47 posts, 6 weeks, zero DMs) which earns credibility points. But 'thousands of impressions' is a tell — it's deliberately vague where it serves the author. The advice itself is competent but not fresh. The voice is polished rather than genuine.",
+    virality_assessment: "Moderate-high engagement potential. The 'Stop X' format reliably earns saves and shares, and the closing question will drive comments. However, it won't go viral because the insight isn't novel enough to surprise anyone already living in the LinkedIn content ecosystem. It will perform well, not exceptionally."
+  },
+  overall_critique: {
+    strengths: "Clean structure, a genuinely strong hook, credible-feeling client story, and at least one truly quotable line ('likes are applause from people who won't buy'). The no-hard-CTA approach is sophisticated.",
+    weaknesses: "The 'Stop X' list is a well-worn LinkedIn template and sophisticated readers will clock it immediately. The client story stops before the payoff — we never learn what happened after the pivot. Five 'Stop' points is one too many; the list dilutes rather than builds.",
+    hidden_agenda: "Authority positioning for consulting or coaching services. The post is a lead magnet without a link — designed to make ideal clients self-identify in the comments and warm up to an eventual offer.",
+    credibility_assessment: "Builds moderate credibility via the client story's specific numbers, but partially erodes it with 'thousands of impressions' (vague) and advice that feels recycled from standard content marketing wisdom.",
+    platform_fit: "Well-suited to LinkedIn's format and audience. White space, short paragraphs, and actionable framing all match platform norms.",
+    top_improvement: "Complete the client story. Show us the after: what happened when they made the changes? Even one result — '3 DMs in the next 10 days, one turned into a discovery call' — would transform this from advice content into proof content."
+  },
+  rewritten_post: {
+    post: `47 posts. 6 weeks. Zero DMs.
+
+That was my client's situation when she came to me — a health coach with 4,200 followers and a content calendar that could fill a textbook.
+
+The problem wasn't effort.
+Every post tried to resonate with everyone. And when you speak to everyone, you convert no one.
+
+We made 4 changes. In the next 30 days, she got 11 DMs and booked 3 discovery calls.
+
+Here's what actually moved the needle:
+
+One platform, fully owned.
+She was posting to LinkedIn, Instagram, and a newsletter simultaneously. We cut it to LinkedIn only. Depth beats breadth when you're selling a service.
+
+Two content pillars — both tied to what she sells.
+Everything else got cut. If a post idea didn't connect directly to "why hire a health coach," it didn't get written.
+
+Write for recognition, not reach.
+The goal shifted from "how many people see this" to "does my ideal client read this and think: that's exactly me." Smaller reach, higher intent.
+
+Track revenue signals, not vanity metrics.
+Profile visits. DMs. Link clicks. Those three told us more in a week than 6 weeks of impression data.
+
+You probably don't need more content.
+You need content built for conversion, not applause.
+
+What's the one metric you track that you suspect is lying to you?`,
+    changes_made: [
+      "Completed the client story with a concrete outcome (11 DMs, 3 discovery calls) — the original stopped before the payoff",
+      "Added a client detail (health coach, 4,200 followers) to make the story feel specific and real",
+      "Reduced 'Stop X' list from 5 items to 4, cutting the weakest one and going deeper on each remaining point",
+      "Replaced 'thousands of impressions' with a real context (6 weeks of impression data) to eliminate the vague credibility inflation",
+      "Sharpened the closing question — 'lying to you' is more emotionally loaded than 'stopped tracking'",
+      "Trimmed the 'one insight → 3 formats / spreadsheet' tip which was the weakest and most generic point in the original"
+    ],
+    good_practices_applied: [
+      "Hook: Opens with the most compelling line immediately — the 47/6/0 data — no preamble",
+      "Specificity: Client details, outcome metrics, and timeframes throughout",
+      "Structure: White space and short paragraphs maintained for LinkedIn readability",
+      "Payoff: Story now has a beginning, middle, and result",
+      "CTA: Ends with one specific, provocative question rather than a two-part compound question",
+      "Voice: Preserves the author's direct, practitioner tone without sanitizing it"
+    ]
+  }
+};
+
+function Accordion({ title, children, defaultOpen = false }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <div className="accordion">
+      <button className="accordion-header" onClick={() => setOpen(!open)}>
+        <span className="accordion-title">{title}</span>
+        <span className="accordion-arrow">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && <div className="accordion-body">{children}</div>}
+    </div>
+  );
+}
+
+function SegBadge({ value }) {
+  const cls = value === "positive" ? "seg-positive" : value === "neutral" ? "seg-neutral" : "seg-negative";
+  return <span className={`seg-badge ${cls}`}>{value}</span>;
+}
+
+function App() {
+  const [tab, setTab] = React.useState("analysis");
+  const a = analysis;
+  const scoreColor = a.extended_analysis.authenticity_score >= 8 ? "#16a34a" : a.extended_analysis.authenticity_score >= 6 ? "#d97706" : "#dc2626";
+
+  return (
+    <div className="container">
+      <h1>LinkedIn Post Analysis</h1>
+      <div className="badge-row">
+        <span className="badge badge-blue">{a.platform_detected}</span>
+        <span className="badge badge-purple">{a.author_type}</span>
+      </div>
+      <p className="target">🎯 {a.target_audience}</p>
+
+      <div className="tabs">
+        <button className={`tab-btn ${tab === "analysis" ? "active" : ""}`} onClick={() => setTab("analysis")}>📊 Full Analysis</button>
+        <button className={`tab-btn ${tab === "rewrite" ? "active" : ""}`} onClick={() => setTab("rewrite")}>✍️ Rewritten Post</button>
+      </div>
+
+      {tab === "analysis" && (
+        <div>
+          <div className="score-grid">
+            <div className="score-card">
+              <div className="score-num" style={{ color: scoreColor }}>{a.extended_analysis.authenticity_score}/10</div>
+              <div className="score-label">Authenticity Score</div>
+            </div>
+            <div className="score-card">
+              <div className="score-num" style={{ color: "#d97706" }}>{a.predictability.is_predictable ? "⚠️" : "✅"}</div>
+              <div className="score-label">{a.predictability.is_predictable ? "Predictable Format" : "Fresh Format"}</div>
+            </div>
+          </div>
+
+          <Accordion title="💪 What Works vs. What's Just Storytelling" defaultOpen={true}>
+            <div className="green-label">✅ Genuinely works</div>
+            <ul className="plain">{a.options.positive.map((p, i) => <li key={i}>• {p}</li>)}</ul>
+            <div className="amber-label">⚠️ Storytelling only</div>
+            <ul className="plain">{a.options.storytelling_only.map((p, i) => <li key={i}>• {p}</li>)}</ul>
+          </Accordion>
+
+          <Accordion title="🔍 Segment-by-Segment Breakdown">
+            {a.story_analysis.map((seg, i) => (
+              <div className="segment-card" key={i}>
+                <div className="segment-header">
+                  <span className="segment-name">{seg.segment}</span>
+                  <SegBadge value={seg.value_assessment} />
+                </div>
+                <p className="segment-quote">"{seg.content}"</p>
+                <p className="segment-explain">{seg.explanation}</p>
+              </div>
+            ))}
+          </Accordion>
+
+          <Accordion title="🎭 Tone & Rhetorical Devices">
+            <p style={{ marginBottom: 8 }}><strong>Tone:</strong> {a.tone_and_impact.tone}</p>
+            <p style={{ marginBottom: 12 }}>{a.tone_and_impact.reader_impact}</p>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Rhetorical devices used:</div>
+            <ul className="plain">{a.extended_analysis.rhetorical_devices.map((d, i) => <li key={i}>• {d}</li>)}</ul>
+          </Accordion>
+
+          <Accordion title="🕵️ Subtext & Hidden Agenda">
+            <p style={{ marginBottom: 10 }}><strong>What it's really saying:</strong> {a.extended_analysis.subtext}</p>
+            <p style={{ marginBottom: 10 }}><strong>Hidden agenda:</strong> {a.overall_critique.hidden_agenda}</p>
+            <p><strong>Authenticity:</strong> {a.extended_analysis.authenticity_justification}</p>
+          </Accordion>
+
+          <Accordion title="📈 Virality & Credibility">
+            <p style={{ marginBottom: 10 }}><strong>Virality:</strong> {a.extended_analysis.virality_assessment}</p>
+            <p><strong>Credibility:</strong> {a.overall_critique.credibility_assessment}</p>
+          </Accordion>
+
+          <Accordion title="🔧 Alternative Approaches">
+            {a.alternative_suggestions.map((s, i) => <div className="suggestion-item" key={i}>{s}</div>)}
+          </Accordion>
+
+          <div className="highlight-box">
+            <div className="highlight-box-title">🎯 #1 Improvement</div>
+            <div className="highlight-box-body">{a.overall_critique.top_improvement}</div>
+          </div>
+        </div>
+      )}
+
+      {tab === "rewrite" && (
+        <div>
+          <div className="rewrite-box">{a.rewritten_post.post}</div>
+          <Accordion title="✏️ Changes Made" defaultOpen={true}>
+            {a.rewritten_post.changes_made.map((c, i) => <div className="change-item" key={i}>{c}</div>)}
+          </Accordion>
+          <Accordion title="✅ Best Practices Applied" defaultOpen={true}>
+            <ul className="plain">{a.rewritten_post.good_practices_applied.map((c, i) => <li className="practice-item" key={i}>• {c}</li>)}</ul>
+          </Accordion>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
